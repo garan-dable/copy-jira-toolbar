@@ -1,0 +1,14 @@
+{
+  "manifest_version": 3,
+  "name": "Copy Jira Toolbar",
+  "version": "1.0",
+  "description": "Jira 내용을 복사합니다.",
+  "permissions": ["scripting", "activeTab", "clipboardWrite"],
+  "content_scripts": [
+    {
+      "matches": ["https://teamdable.atlassian.net/browse/*"],
+      "js": ["turndown.js", "content.js"]
+    }
+  ],
+  "host_permissions": ["https://teamdable.atlassian.net/*"]
+}
