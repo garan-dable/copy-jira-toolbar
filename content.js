@@ -20,12 +20,13 @@
 
     const titleEl = document.querySelector(titleSel);
     const title = titleEl?.innerText?.trim() || '';
-    const keyTitle = `[${issueKey}] ${title}`;
+    const full = `[${issueKey}] ${title}`;
+    const url = location.href;
+    const fullLink = `${full}([#](${url}))`;
     const contentsEl = document.querySelector(contentsSel);
     const contentsHtml = contentsEl?.innerHTML || '';
     const turndownService = new TurndownService();
     const contents = turndownService.turndown(contentsHtml);
-    const url = location.href;
 
     const createButton = (text, id, value) => {
       const button = document.createElement('button');
@@ -83,10 +84,11 @@
     container.style.borderRadius = '5px';
 
     container.appendChild(createButton('KEY', 'key-btn', issueKey));
-    container.appendChild(createButton('KEY+TITLE', 'key-title-btn', keyTitle));
     container.appendChild(createButton('TITLE', 'title-btn', title));
-    container.appendChild(createButton('CONTENTS', 'contents-btn', contents));
     container.appendChild(createButton('URL', 'url-btn', url));
+    container.appendChild(createButton('FULL', 'full-btn', full));
+    container.appendChild(createButton('FULL(#)', 'full-link-btn', fullLink));
+    container.appendChild(createButton('CONTENTS', 'contents-btn', contents));
     document.body.appendChild(container);
   };
 
