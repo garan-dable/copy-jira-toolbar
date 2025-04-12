@@ -3,12 +3,29 @@
   "name": "Copy Jira Toolbar",
   "version": "1.0",
   "description": "Jira 내용을 복사합니다.",
-  "permissions": ["scripting", "activeTab", "clipboardWrite"],
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "permissions": ["scripting", "activeTab", "tabs", "clipboardWrite"],
+  "host_permissions": ["https://teamdable.atlassian.net/*"],
+  "action": {
+    "default_icon": {
+      "16": "icons/icon16_gray.png",
+      "48": "icons/icon48_gray.png",
+      "128": "icons/icon128_gray.png"
+    },
+    "default_title": "Copy Jira Toolbar"
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
   "content_scripts": [
     {
       "matches": ["https://teamdable.atlassian.net/browse/*"],
-      "js": ["turndown.js", "content.js"]
+      "js": ["turndown.js", "content.js"],
+      "run_at": "document_idle"
     }
-  ],
-  "host_permissions": ["https://teamdable.atlassian.net/*"]
+  ]
 }
