@@ -33,7 +33,8 @@
       button.id = id;
       button.innerText = text;
       button.style.padding = '4px 8px';
-      button.style.fontSize = '12px';
+      button.style.fontSize = '11px';
+      button.style.fontWeight = 'bold';
       button.style.backgroundColor = '#fff';
       button.style.border = 'none';
       button.style.cursor = 'pointer';
@@ -78,14 +79,14 @@
     container.style.zIndex = 9999;
     container.style.display = 'flex';
     container.style.gap = '13px';
-    container.style.padding = '0 24px';
+    container.style.padding = '0 15px';
     container.style.backgroundColor = '#fff';
     container.style.border = '1px solid #000';
     container.style.borderRadius = '5px';
 
     container.appendChild(createButton('KEY', 'key-btn', issueKey));
     container.appendChild(createButton('TITLE', 'title-btn', title));
-    container.appendChild(createButton('URL', 'url-btn', url));
+    container.appendChild(createButton('🔗', 'url-btn', url));
     container.appendChild(createButton('FULL', 'full-btn', full));
     container.appendChild(createButton('FULL(#)', 'full-link-btn', fullLink));
     container.appendChild(createButton('CONTENTS', 'contents-btn', contents));
