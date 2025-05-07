@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Copy Jira Toolbar
 // @namespace    http://tampermonkey.net/
-// @version      1.0
+// @version      1.1
 // @description  Jira 내용을 복사합니다.
 // @author       garan-dable
 // @match        https://teamdable.atlassian.net/browse/*
@@ -1079,34 +1079,15 @@ var TurndownService = (function () {
 (function () {
   const toolbarId = 'copy-jira-toolbar';
   let currentPath = location.pathname;
-  const delay = (ms) => new Promise((res) => setTimeout(res, ms));
 
   const run = async () => {
     if (!location.href.includes('atlassian.net/browse/')) return;
-
     const match = currentPath.match(/\/browse\/([A-Z]+-\d+)/);
     const issueKey = match?.[1];
     if (!issueKey) return;
     if (document.getElementById(toolbarId)) return;
 
-    const titleSel =
-      '[data-testid="issue.views.issue-base.foundation.summary.heading"]';
-    const contentsSel =
-      '[data-testid="issue.views.field.rich-text.description"]';
-
-    await delay(1500);
-
-    const titleEl = document.querySelector(titleSel);
-    const title = titleEl?.innerText?.trim() || '';
-    const full = `[${issueKey}] ${title}`;
-    const url = location.href;
-    const fullLink = `${full}([#](${url}))`;
-    const contentsEl = document.querySelector(contentsSel);
-    const contentsHtml = contentsEl?.innerHTML || '';
-    const turndownService = new TurndownService();
-    const contents = turndownService.turndown(contentsHtml);
-
-    const createButton = (text, id, value) => {
+    const createButton = (text, id, getValue) => {
       const button = document.createElement('button');
       button.id = id;
       button.innerText = text;
@@ -1130,16 +1111,17 @@ var TurndownService = (function () {
       });
 
       button.onclick = () => {
+        const value = getValue();
         navigator.clipboard
           .writeText(value)
           .then(() => {
             if (!value) throw new Error('Missing value');
-            console.log('[CJT]', value);
+            console.log('[CJT🍀]', value);
             button.style.backgroundColor = '#ffff00';
             setTimeout(() => (button.style.backgroundColor = '#fff'), 1000);
           })
           .catch((error) => {
-            console.warn('[CJT]', error);
+            console.warn('[CJT🍀]', error);
             button.style.backgroundColor = '#ff00ff';
             setTimeout(() => (button.style.backgroundColor = '#fff'), 1000);
           });
@@ -1162,12 +1144,59 @@ var TurndownService = (function () {
     container.style.border = '1px solid #000';
     container.style.borderRadius = '5px';
 
-    container.appendChild(createButton('KEY', 'key-btn', issueKey));
-    container.appendChild(createButton('TITLE', 'title-btn', title));
-    container.appendChild(createButton('🔗', 'url-btn', url));
-    container.appendChild(createButton('FULL', 'full-btn', full));
-    container.appendChild(createButton('FULL(#)', 'full-link-btn', fullLink));
-    container.appendChild(createButton('CONTENTS', 'contents-btn', contents));
+    const titleSel =
+      '[data-testid="issue.views.issue-base.foundation.summary.heading"]';
+    const contentsSel =
+      '[data-testid="issue.views.field.rich-text.description"]';
+
+    container.appendChild(
+      createButton('KEY', 'key-btn', () => {
+        const match = currentPath.match(/\/browse\/([A-Z]+-\d+)/);
+        const issueKey = match?.[1] ?? '';
+        return issueKey;
+      })
+    );
+    container.appendChild(
+      createButton('TITLE', 'title-btn', () => {
+        const titleEl = document.querySelector(titleSel);
+        const title = titleEl?.innerText?.trim() ?? '';
+        return title;
+      })
+    );
+    container.appendChild(
+      createButton('🔗', 'url-btn', () => {
+        return location.href;
+      })
+    );
+    container.appendChild(
+      createButton('FULL', 'full-btn', () => {
+        const match = currentPath.match(/\/browse\/([A-Z]+-\d+)/);
+        const issueKey = match?.[1];
+        const titleEl = document.querySelector(titleSel);
+        const title = titleEl?.innerText?.trim();
+        if (!issueKey || !title) return '';
+        return `[${issueKey}] ${title}`;
+      })
+    );
+    container.appendChild(
+      createButton('FULL(#)', 'full-link-btn', () => {
+        const match = currentPath.match(/\/browse\/([A-Z]+-\d+)/);
+        const issueKey = match?.[1];
+        const titleEl = document.querySelector(titleSel);
+        const title = titleEl?.innerText?.trim();
+        if (!issueKey || !title) return '';
+        return `[${issueKey}] ${title}([#](${location.href}))`;
+      })
+    );
+    container.appendChild(
+      createButton('CONTENTS', 'contents-btn', () => {
+        const contentsEl = document.querySelector(contentsSel);
+        const contentsHtml = contentsEl?.innerHTML ?? '';
+        const turndownService = new TurndownService();
+        const contents = turndownService.turndown(contentsHtml);
+        return contents;
+      })
+    );
     document.body.appendChild(container);
   };
 
