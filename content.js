@@ -38,14 +38,14 @@
           .writeText(value)
           .then(() => {
             if (!value) throw new Error('Missing value');
-            console.log('[CJT🍀]', value);
             button.style.backgroundColor = '#ffff00';
-            setTimeout(() => (button.style.backgroundColor = '#fff'), 1000);
+            setTimeout(() => (button.style.backgroundColor = '#fff'), 500);
+            console.log('[CJT🍀]', value);
           })
           .catch((error) => {
-            console.warn('[CJT🍀]', error);
             button.style.backgroundColor = '#ff00ff';
-            setTimeout(() => (button.style.backgroundColor = '#fff'), 1000);
+            setTimeout(() => (button.style.backgroundColor = '#fff'), 500);
+            console.warn('[CJT🍀]', error);
           });
       };
 
@@ -119,6 +119,7 @@
         return contents;
       })
     );
+
     document.body.appendChild(container);
   };
 
