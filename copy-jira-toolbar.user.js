@@ -1,16 +1,18 @@
 // ==UserScript==
 // @name         Copy Jira Toolbar
 // @namespace    http://tampermonkey.net/
-// @version      1.1
+// @version      25060201
 // @description  Jira 내용을 복사합니다.
 // @author       garan-dable
 // @match        https://teamdable.atlassian.net/browse/*
-// @updateURL    https://gist.github.com/garan-dable/b582dd28b53c700a5f9b5128b4131cd5/raw/96ecac28d415d529637654df8b237d152761c2da/copy-jira-toolbar.user.js
-// @downloadURL  https://gist.github.com/garan-dable/b582dd28b53c700a5f9b5128b4131cd5/raw/96ecac28d415d529637654df8b237d152761c2da/copy-jira-toolbar.user.js
-// @require  https://gist.github.com/garan-dable/b582dd28b53c700a5f9b5128b4131cd5/raw/96ecac28d415d529637654df8b237d152761c2da/copy-jira-toolbar.user.js
+// @updateURL    https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/load-pr-template.user.js
+// @downloadURL  https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/load-pr-template.user.js
+// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/turndownService.js?v=25060201
+// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/main.js?v=25060201
 // @grant        none
 // ==/UserScript==
 
+// turndownService.js
 var TurndownService = (function () {
   'use strict';
 
@@ -1076,6 +1078,7 @@ var TurndownService = (function () {
   return TurndownService;
 })();
 
+// main.js
 (function () {
   const toolbarId = 'copy-jira-toolbar';
   let currentPath = location.pathname;
@@ -1087,6 +1090,16 @@ var TurndownService = (function () {
     if (!issueKey) return;
     if (document.getElementById(toolbarId)) return;
 
+    const resetButton = (button) => {
+      button.style.color = 'var(--ds-text)';
+      button.style.backgroundColor = 'transparent';
+    };
+
+    const highlightButton = (button, color) => {
+      button.style.color = '#000';
+      button.style.backgroundColor = color;
+    };
+
     const createButton = (text, id, getValue) => {
       const button = document.createElement('button');
       button.id = id;
@@ -1094,20 +1107,20 @@ var TurndownService = (function () {
       button.style.padding = '4px 8px';
       button.style.fontSize = '11px';
       button.style.fontWeight = 'bold';
-      button.style.backgroundColor = '#fff';
       button.style.border = 'none';
       button.style.cursor = 'pointer';
       button.style.outline = 'none';
+      resetButton(button);
 
       button.addEventListener('mouseover', () => {
         button.style.fontStyle = 'italic';
         button.style.textDecoration = 'underline';
-        button.style.backgroundColor = '#00ffff';
+        highlightButton(button, '#00ffff');
       });
       button.addEventListener('mouseout', () => {
         button.style.fontStyle = 'normal';
         button.style.textDecoration = 'none';
-        button.style.backgroundColor = '#fff';
+        resetButton(button);
       });
 
       button.onclick = () => {
@@ -1116,13 +1129,13 @@ var TurndownService = (function () {
           .writeText(value)
           .then(() => {
             if (!value) throw new Error('Missing value');
-            button.style.backgroundColor = '#ffff00';
-            setTimeout(() => (button.style.backgroundColor = '#fff'), 500);
+            highlightButton(button, '#ffff00');
+            setTimeout(() => resetButton(button), 200);
             console.log('[CJT🍀]', value);
           })
           .catch((error) => {
-            button.style.backgroundColor = '#ff00ff';
-            setTimeout(() => (button.style.backgroundColor = '#fff'), 500);
+            highlightButton(button, '#ff00ff');
+            setTimeout(() => resetButton(button), 200);
             console.warn('[CJT🍀]', error);
           });
       };
@@ -1140,8 +1153,8 @@ var TurndownService = (function () {
     container.style.display = 'flex';
     container.style.gap = '13px';
     container.style.padding = '0 15px';
-    container.style.backgroundColor = '#fff';
-    container.style.border = '1px solid #000';
+    container.style.backgroundColor = 'var(--ds-surface)';
+    container.style.border = '1px solid var(--ds-text)';
     container.style.borderRadius = '5px';
 
     const titleSel =
