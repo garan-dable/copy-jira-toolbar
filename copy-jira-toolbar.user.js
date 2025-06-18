@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         Copy Jira Toolbar
 // @namespace    http://tampermonkey.net/
-// @version      25060201
+// @version      25061801
 // @description  Jira 내용을 복사합니다.
 // @author       garan-dable
 // @match        https://teamdable.atlassian.net/browse/*
 // @updateURL    https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/load-pr-template.user.js
 // @downloadURL  https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/load-pr-template.user.js
-// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/turndownService.js?v=25060201
-// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/main.js?v=25060201
+// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/turndownService.js?v=25061801
+// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/main.js?v=25061801
 // @grant        none
 // ==/UserScript==
 
@@ -1080,18 +1080,36 @@ var TurndownService = (function () {
 
 // main.js
 (function () {
-  const toolbarId = 'copy-jira-toolbar';
   let currentPath = location.pathname;
+  const TOOLBAR_ID = 'copy-jira-toolbar';
+  const TITLE_SELECTOR =
+    '[data-testid="issue.views.issue-base.foundation.summary.heading"]';
+  const CONTENTS_SELECTOR =
+    '[data-testid="issue.views.field.rich-text.description"]';
+  const TEXT_COLOR = 'var(--ds-text)';
+  const BACKGROUND_COLOR = 'var(--ds-surface)';
+
+  const getIssueKey = () => {
+    const match = currentPath.match(/\/browse\/([A-Z]+-\d+)/);
+    return match?.[1];
+  };
+
+  const getTitle = () => {
+    const titleEl = document.querySelector(TITLE_SELECTOR);
+    return titleEl?.innerText?.trim() ?? '';
+  };
+
+  const getUrl = () => {
+    return location.href;
+  };
 
   const run = async () => {
-    if (!location.href.includes('atlassian.net/browse/')) return;
-    const match = currentPath.match(/\/browse\/([A-Z]+-\d+)/);
-    const issueKey = match?.[1];
-    if (!issueKey) return;
-    if (document.getElementById(toolbarId)) return;
+    if (!getUrl().includes('atlassian.net/browse/')) return;
+    if (!getIssueKey()) return;
+    if (document.getElementById(TOOLBAR_ID)) return;
 
     const resetButton = (button) => {
-      button.style.color = 'var(--ds-text)';
+      button.style.color = TEXT_COLOR;
       button.style.backgroundColor = 'transparent';
     };
 
@@ -1100,10 +1118,10 @@ var TurndownService = (function () {
       button.style.backgroundColor = color;
     };
 
-    const createButton = (text, id, getValue) => {
+    const createButton = ({ name, id, getValue }) => {
       const button = document.createElement('button');
       button.id = id;
-      button.innerText = text;
+      button.innerText = name;
       button.style.padding = '4px 8px';
       button.style.fontSize = '11px';
       button.style.fontWeight = 'bold';
@@ -1144,7 +1162,7 @@ var TurndownService = (function () {
     };
 
     const container = document.createElement('div');
-    container.id = toolbarId;
+    container.id = TOOLBAR_ID;
     container.style.position = 'fixed';
     container.style.top = '15px';
     container.style.left = '50%';
@@ -1153,63 +1171,40 @@ var TurndownService = (function () {
     container.style.display = 'flex';
     container.style.gap = '13px';
     container.style.padding = '0 15px';
-    container.style.backgroundColor = 'var(--ds-surface)';
-    container.style.border = '1px solid var(--ds-text)';
+    container.style.backgroundColor = BACKGROUND_COLOR;
+    container.style.border = `1px solid ${TEXT_COLOR}`;
     container.style.borderRadius = '5px';
 
-    const titleSel =
-      '[data-testid="issue.views.issue-base.foundation.summary.heading"]';
-    const contentsSel =
-      '[data-testid="issue.views.field.rich-text.description"]';
+    const buttons = [
+      { name: 'KEY', id: 'key-btn', getValue: getIssueKey },
+      { name: 'TITLE', id: 'title-btn', getValue: getTitle },
+      { name: '🔗', id: 'url-btn', getValue: getUrl },
+      {
+        name: '[K] TITLE',
+        id: 'key-title-btn',
+        getValue: () => `[${getIssueKey()}] ${getTitle()}`,
+      },
+      {
+        name: '[K] TITLE(#)',
+        id: 'key-title-link-btn',
+        getValue: () => `[${getIssueKey()}] ${getTitle()}([#](${getUrl()}))`,
+      },
+      {
+        name: 'CONTENTS',
+        id: 'contents-btn',
+        getValue: () => {
+          const contentsEl = document.querySelector(CONTENTS_SELECTOR);
+          const contentsHtml = contentsEl?.innerHTML ?? '';
+          const turndownService = new TurndownService();
+          const contents = turndownService.turndown(contentsHtml);
+          return contents;
+        },
+      },
+    ];
 
-    container.appendChild(
-      createButton('KEY', 'key-btn', () => {
-        const match = currentPath.match(/\/browse\/([A-Z]+-\d+)/);
-        const issueKey = match?.[1] ?? '';
-        return issueKey;
-      })
-    );
-    container.appendChild(
-      createButton('TITLE', 'title-btn', () => {
-        const titleEl = document.querySelector(titleSel);
-        const title = titleEl?.innerText?.trim() ?? '';
-        return title;
-      })
-    );
-    container.appendChild(
-      createButton('🔗', 'url-btn', () => {
-        return location.href;
-      })
-    );
-    container.appendChild(
-      createButton('FULL', 'full-btn', () => {
-        const match = currentPath.match(/\/browse\/([A-Z]+-\d+)/);
-        const issueKey = match?.[1];
-        const titleEl = document.querySelector(titleSel);
-        const title = titleEl?.innerText?.trim();
-        if (!issueKey || !title) return '';
-        return `[${issueKey}] ${title}`;
-      })
-    );
-    container.appendChild(
-      createButton('FULL(#)', 'full-link-btn', () => {
-        const match = currentPath.match(/\/browse\/([A-Z]+-\d+)/);
-        const issueKey = match?.[1];
-        const titleEl = document.querySelector(titleSel);
-        const title = titleEl?.innerText?.trim();
-        if (!issueKey || !title) return '';
-        return `[${issueKey}] ${title}([#](${location.href}))`;
-      })
-    );
-    container.appendChild(
-      createButton('CONTENTS', 'contents-btn', () => {
-        const contentsEl = document.querySelector(contentsSel);
-        const contentsHtml = contentsEl?.innerHTML ?? '';
-        const turndownService = new TurndownService();
-        const contents = turndownService.turndown(contentsHtml);
-        return contents;
-      })
-    );
+    buttons.forEach((props) => {
+      container.appendChild(createButton(props));
+    });
 
     document.body.appendChild(container);
   };
@@ -1219,7 +1214,7 @@ var TurndownService = (function () {
   const observer = new MutationObserver(async () => {
     if (currentPath !== location.pathname) {
       currentPath = location.pathname;
-      document.getElementById(toolbarId)?.remove();
+      document.getElementById(TOOLBAR_ID)?.remove();
       run();
     }
   });
