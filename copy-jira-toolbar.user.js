@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         Copy Jira Toolbar
 // @namespace    http://tampermonkey.net/
-// @version      25061801
+// @version      25061803
 // @description  Jira 내용을 복사합니다.
 // @author       garan-dable
 // @match        https://teamdable.atlassian.net/browse/*
 // @updateURL    https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/load-pr-template.user.js
 // @downloadURL  https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/load-pr-template.user.js
-// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/turndownService.js?v=25061801
-// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/main.js?v=25061801
+// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/turndownService.js?v=25061803
+// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/main.js?v=25061803
 // @grant        none
 // ==/UserScript==
 
@@ -1088,6 +1088,10 @@ var TurndownService = (function () {
     '[data-testid="issue.views.field.rich-text.description"]';
   const TEXT_COLOR = 'var(--ds-text)';
   const BACKGROUND_COLOR = 'var(--ds-surface)';
+  const LIGHT_COLOR = { on: 'lime', off: 'green' };
+  const REFLECT_COLOR = { on: '#fff', off: 'hsla(0,0%,100%,.314)' };
+  const extensionButtons = ['key-title-link-ex-btn', 'contents-btn'];
+  let extended = localStorage.getItem('CJT_extended') === 'true' ? 'on' : 'off';
 
   const getIssueKey = () => {
     const match = currentPath.match(/\/browse\/([A-Z]+-\d+)/);
@@ -1161,6 +1165,70 @@ var TurndownService = (function () {
       return button;
     };
 
+    const createExtendToggle = () => {
+      const toggle = document.createElement('div');
+      toggle.id = 'extend-toggle';
+      toggle.style.display = 'flex';
+      toggle.style.alignItems = 'center';
+      toggle.style.marginLeft = '25px';
+      toggle.style.gap = '5px';
+      toggle.style.cursor = 'pointer';
+
+      const circle = document.createElement('div');
+      circle.style.display = 'flex';
+      circle.style.alignItems = 'center';
+      circle.style.justifyContent = 'center';
+      circle.style.padding = '1px';
+      circle.style.width = '8px';
+      circle.style.height = '8px';
+      circle.style.border = `1px solid ${TEXT_COLOR}`;
+      circle.style.borderRadius = '50%';
+
+      const light = document.createElement('div');
+      light.style.width = '100%';
+      light.style.height = '100%';
+      light.style.backgroundColor = LIGHT_COLOR[extended];
+      light.style.borderRadius = '50%';
+      light.style.position = 'relative';
+
+      const reflect = document.createElement('div');
+      reflect.style.position = 'absolute';
+      reflect.style.top = '1px';
+      reflect.style.right = '1px';
+      reflect.style.width = '3px';
+      reflect.style.height = '3px';
+      reflect.style.backgroundColor = REFLECT_COLOR[extended];
+      reflect.style.borderRadius = '50%';
+
+      const text = document.createElement('div');
+      text.innerText = 'extend';
+      text.style.fontSize = '9px';
+      text.style.fontWeight = 'bold';
+      text.style.color = TEXT_COLOR;
+      text.style.cursor = 'pointer';
+
+      light.appendChild(reflect);
+      circle.appendChild(light);
+      toggle.appendChild(circle);
+      toggle.appendChild(text);
+
+      toggle.onclick = () => {
+        const isExtended = extended === 'on';
+        extended = isExtended ? 'off' : 'on';
+        localStorage.setItem('CJT_extended', !isExtended);
+        light.style.backgroundColor = LIGHT_COLOR[extended];
+        reflect.style.backgroundColor = REFLECT_COLOR[extended];
+
+        extensionButtons.forEach((id) => {
+          const button = document.getElementById(id);
+          if (!button) return;
+          button.style.display = !isExtended ? 'block' : 'none';
+        });
+      };
+
+      return toggle;
+    };
+
     const container = document.createElement('div');
     container.id = TOOLBAR_ID;
     container.style.position = 'fixed';
@@ -1169,7 +1237,7 @@ var TurndownService = (function () {
     container.style.transform = 'translateX(-50%)';
     container.style.zIndex = 9999;
     container.style.display = 'flex';
-    container.style.gap = '13px';
+    container.style.gap = '10px';
     container.style.padding = '0 15px';
     container.style.backgroundColor = BACKGROUND_COLOR;
     container.style.border = `1px solid ${TEXT_COLOR}`;
@@ -1190,6 +1258,14 @@ var TurndownService = (function () {
         getValue: () => `[${getIssueKey()}] ${getTitle()}([#](${getUrl()}))`,
       },
       {
+        name: '[K] TITLE(#)-🔗',
+        id: 'key-title-link-ex-btn',
+        getValue: () => {
+          const url = getUrl();
+          return `*   [${getIssueKey()}] ${getTitle()}([#](${url}))\n    *   ${url}`;
+        },
+      },
+      {
         name: 'CONTENTS',
         id: 'contents-btn',
         getValue: () => {
@@ -1203,9 +1279,14 @@ var TurndownService = (function () {
     ];
 
     buttons.forEach((props) => {
-      container.appendChild(createButton(props));
+      const button = createButton(props);
+      if (extensionButtons.includes(props.id)) {
+        button.style.display = extended === 'on' ? 'block' : 'none';
+      }
+      container.appendChild(button);
     });
 
+    container.appendChild(createExtendToggle());
     document.body.appendChild(container);
   };
 
