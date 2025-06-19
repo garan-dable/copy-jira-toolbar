@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         Copy Jira Toolbar
 // @namespace    http://tampermonkey.net/
-// @version      25061901
+// @version      25061902
 // @description  Jira 내용을 복사합니다.
 // @author       garan-dable
 // @match        https://teamdable.atlassian.net/browse/*
 // @updateURL    https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/load-pr-template.user.js
 // @downloadURL  https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/load-pr-template.user.js
-// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/turndownService.js?v=25061901
-// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/main.js?v=25061901
+// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/turndownService.js?v=25061902
+// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/main.js?v=25061902
 // @grant        none
 // ==/UserScript==
 
@@ -1128,22 +1128,117 @@ var TurndownService = (function () {
       button.style.backgroundColor = color;
     };
 
+    const toolbarStyle = {
+      position: 'fixed',
+      top: '15px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      zIndex: 9999,
+      display: 'flex',
+      alignItems: 'center',
+      gap: '10px',
+      padding: '0 15px',
+      height: '25px',
+      backgroundColor: BACKGROUND_COLOR,
+      border: `1px solid ${TEXT_COLOR}`,
+      borderRadius: '5px',
+      whiteSpace: 'nowrap',
+      overflowX: 'hidden',
+      textOverflow: 'clip',
+    };
+
+    const copyButtonStyle = {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '0 8px',
+      height: '100%',
+      lineHeight: '25px',
+      fontSize: '11px',
+      fontWeight: 'bold',
+      verticalAlign: 'middle',
+      border: 'none',
+      cursor: 'pointer',
+      outline: 'none',
+    };
+
+    const settingsButtonStyle = {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginLeft: '5px',
+      padding: '0 5px',
+      fontSize: '12px',
+      fontWeight: 'bold',
+      cursor: 'pointer',
+    };
+
+    const settingsPopupStyle = {
+      position: 'fixed',
+      top: '50px',
+      left: '50%',
+      transform: 'translateX(-50%)',
+      zIndex: 9999,
+      display: 'flex',
+      flexDirection: 'column',
+      padding: '7px',
+      paddingRight: '0',
+      gap: '5px',
+      backgroundColor: BACKGROUND_COLOR,
+      border: `1px solid ${TEXT_COLOR}`,
+      borderRadius: '5px',
+      whiteSpace: 'nowrap',
+      overflowX: 'hidden',
+      textOverflow: 'clip',
+    };
+
+    const settingsRowStyle = {
+      display: 'flex',
+      alignItems: 'center',
+      height: '25px',
+      gap: '2px',
+    };
+
+    const toggleStyle = {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '5px',
+      cursor: 'pointer',
+    };
+
+    const toggleCircleStyle = {
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '1px',
+      width: '8px',
+      height: '8px',
+      border: `1px solid ${TEXT_COLOR}`,
+      borderRadius: '50%',
+    };
+
+    const toggleLightStyle = {
+      width: '100%',
+      height: '100%',
+      borderRadius: '50%',
+      position: 'relative',
+    };
+
+    const toggleReflectStyle = {
+      position: 'absolute',
+      top: '1px',
+      right: '1px',
+      width: '3px',
+      height: '3px',
+      borderRadius: '50%',
+    };
+
     const createCopyButton = ({ name, id, getValue }) => {
       const button = document.createElement('button');
       button.id = id;
       button.innerText = name;
-      button.style.display = 'flex';
-      button.style.alignItems = 'center';
-      button.style.justifyContent = 'center';
-      button.style.padding = '0 8px';
-      button.style.height = '100%';
-      button.style.lineHeight = '25px';
-      button.style.fontSize = '11px';
-      button.style.fontWeight = 'bold';
-      button.style.verticalAlign = 'middle';
-      button.style.border = 'none';
-      button.style.cursor = 'pointer';
-      button.style.outline = 'none';
+      Object.assign(button.style, copyButtonStyle);
       resetButton(button);
 
       button.addEventListener('mouseover', () => {
@@ -1187,16 +1282,8 @@ var TurndownService = (function () {
       const settings = document.createElement('div');
       settings.id = 'settings-btn';
       settings.innerText = '···';
-      settings.style.display = 'flex';
-      settings.style.alignItems = 'center';
-      settings.style.justifyContent = 'center';
-      settings.style.marginLeft = '5px';
-      settings.style.padding = '0 5px';
-      settings.style.fontSize = '12px';
-      settings.style.fontWeight = 'bold';
-      settings.style.cursor = 'pointer';
+      Object.assign(settings.style, settingsButtonStyle);
       settings.onclick = () => onClickSettingsButton();
-
       return settings;
     };
 
@@ -1223,114 +1310,65 @@ var TurndownService = (function () {
     const createSettingsPopup = () => {
       const popup = document.createElement('div');
       popup.id = 'settings-popup';
-      popup.style.position = 'fixed';
-      popup.style.top = '50px';
-      popup.style.left = '50%';
-      popup.style.transform = 'translateX(-50%)';
-      popup.style.zIndex = 9999;
-      popup.style.display = 'flex';
-      popup.style.flexDirection = 'column';
-      popup.style.padding = '5px';
-      popup.style.paddingRight = '0';
-      popup.style.gap = '5px';
-      popup.style.backgroundColor = BACKGROUND_COLOR;
-      popup.style.border = `1px solid ${TEXT_COLOR}`;
-      popup.style.borderRadius = '5px';
-      popup.style.whiteSpace = 'nowrap';
-      popup.style.overflowX = 'hidden';
-      popup.style.textOverflow = 'clip';
-
+      Object.assign(popup.style, settingsPopupStyle);
       buttons.forEach((props) => {
         const row = createSettingsRow(props);
         popup.appendChild(row);
       });
-
       return popup;
     };
 
     const createSettingsRow = (props) => {
       const row = document.createElement('div');
       row.id = `row-${props.id}`;
-      row.style.display = 'flex';
-      row.style.alignItems = 'center';
-      row.style.height = '25px';
-
+      Object.assign(row.style, settingsRowStyle);
       const button = createCopyButton(props);
       button.style.justifyContent = 'flex-start';
       button.style.width = '100%';
-      button.style.padding = '0 5px';
-
+      button.style.padding = '0 9px 0 5px';
       row.appendChild(createToggle(props.id));
       row.appendChild(button);
-
       return row;
     };
 
     const createToggle = (buttonId) => {
       const toggle = document.createElement('div');
       toggle.id = `toggle-${buttonId}`;
-      toggle.style.display = 'flex';
-      toggle.style.alignItems = 'center';
-      toggle.style.justifyContent = 'center';
-      toggle.style.padding = '5px';
-      toggle.style.cursor = 'pointer';
-
+      Object.assign(toggle.style, toggleStyle);
       const circle = createToggleCircle();
       const light = createToggleLight();
       const reflect = createToggleReflect();
-
       const updateToggleState = () => {
         const isVisible = visibleButtons.includes(buttonId);
         light.style.backgroundColor = isVisible ? 'lime' : 'green';
         reflect.style.backgroundColor = isVisible ? '#fff' : '#FFFFFF50';
       };
-
       updateToggleState();
       light.appendChild(reflect);
       circle.appendChild(light);
       toggle.appendChild(circle);
-
       toggle.onclick = () => {
         onClickToggle(buttonId);
         updateToggleState();
       };
-
       return toggle;
     };
 
     const createToggleCircle = () => {
       const circle = document.createElement('div');
-      circle.style.display = 'flex';
-      circle.style.alignItems = 'center';
-      circle.style.justifyContent = 'center';
-      circle.style.padding = '1px';
-      circle.style.width = '8px';
-      circle.style.height = '8px';
-      circle.style.border = `1px solid ${TEXT_COLOR}`;
-      circle.style.borderRadius = '50%';
-
+      Object.assign(circle.style, toggleCircleStyle);
       return circle;
     };
 
     const createToggleLight = () => {
       const light = document.createElement('div');
-      light.style.width = '100%';
-      light.style.height = '100%';
-      light.style.borderRadius = '50%';
-      light.style.position = 'relative';
-
+      Object.assign(light.style, toggleLightStyle);
       return light;
     };
 
     const createToggleReflect = () => {
       const reflect = document.createElement('div');
-      reflect.style.position = 'absolute';
-      reflect.style.top = '1px';
-      reflect.style.right = '1px';
-      reflect.style.width = '3px';
-      reflect.style.height = '3px';
-      reflect.style.borderRadius = '50%';
-
+      Object.assign(reflect.style, toggleReflectStyle);
       return reflect;
     };
 
@@ -1360,22 +1398,7 @@ var TurndownService = (function () {
 
     const container = document.createElement('div');
     container.id = TOOLBAR_ID;
-    container.style.position = 'fixed';
-    container.style.top = '15px';
-    container.style.left = '50%';
-    container.style.transform = 'translateX(-50%)';
-    container.style.zIndex = 9999;
-    container.style.display = 'flex';
-    container.style.alignItems = 'center';
-    container.style.gap = '10px';
-    container.style.padding = '0 15px';
-    container.style.height = '25px';
-    container.style.backgroundColor = BACKGROUND_COLOR;
-    container.style.border = `1px solid ${TEXT_COLOR}`;
-    container.style.borderRadius = '5px';
-    container.style.whiteSpace = 'nowrap';
-    container.style.overflowX = 'hidden';
-    container.style.textOverflow = 'clip';
+    Object.assign(container.style, toolbarStyle);
 
     const buttons = [
       { name: 'KEY', id: 'key-btn', getValue: getIssueKey },
