@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         Copy Jira Toolbar
 // @namespace    http://tampermonkey.net/
-// @version      25061803
+// @version      25061901
 // @description  Jira 내용을 복사합니다.
 // @author       garan-dable
 // @match        https://teamdable.atlassian.net/browse/*
 // @updateURL    https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/load-pr-template.user.js
 // @downloadURL  https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/load-pr-template.user.js
-// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/turndownService.js?v=25061803
-// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/main.js?v=25061803
+// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/turndownService.js?v=25061901
+// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/main.js?v=25061901
 // @grant        none
 // ==/UserScript==
 
@@ -1082,16 +1082,22 @@ var TurndownService = (function () {
 (function () {
   let currentPath = location.pathname;
   const TOOLBAR_ID = 'copy-jira-toolbar';
+  const TEXT_COLOR = 'var(--ds-text)';
+  const BACKGROUND_COLOR = 'var(--ds-surface)';
   const TITLE_SELECTOR =
     '[data-testid="issue.views.issue-base.foundation.summary.heading"]';
   const CONTENTS_SELECTOR =
     '[data-testid="issue.views.field.rich-text.description"]';
-  const TEXT_COLOR = 'var(--ds-text)';
-  const BACKGROUND_COLOR = 'var(--ds-surface)';
-  const LIGHT_COLOR = { on: 'lime', off: 'green' };
-  const REFLECT_COLOR = { on: '#fff', off: 'hsla(0,0%,100%,.314)' };
-  const extensionButtons = ['key-title-link-ex-btn', 'contents-btn'];
-  let extended = localStorage.getItem('CJT_extended') === 'true' ? 'on' : 'off';
+  const STORAGE_KEY = 'CJT_btns';
+  let visibleButtons = JSON.parse(localStorage.getItem(STORAGE_KEY)) || [
+    'key-btn',
+    'title-btn',
+    'url-btn',
+    'key-title-btn',
+    'key-title-link-btn',
+  ];
+  let openSettings = null;
+  let settingsClickListener = null;
 
   const getIssueKey = () => {
     const match = currentPath.match(/\/browse\/([A-Z]+-\d+)/);
@@ -1122,13 +1128,19 @@ var TurndownService = (function () {
       button.style.backgroundColor = color;
     };
 
-    const createButton = ({ name, id, getValue }) => {
+    const createCopyButton = ({ name, id, getValue }) => {
       const button = document.createElement('button');
       button.id = id;
       button.innerText = name;
-      button.style.padding = '4px 8px';
+      button.style.display = 'flex';
+      button.style.alignItems = 'center';
+      button.style.justifyContent = 'center';
+      button.style.padding = '0 8px';
+      button.style.height = '100%';
+      button.style.lineHeight = '25px';
       button.style.fontSize = '11px';
       button.style.fontWeight = 'bold';
+      button.style.verticalAlign = 'middle';
       button.style.border = 'none';
       button.style.cursor = 'pointer';
       button.style.outline = 'none';
@@ -1145,35 +1157,148 @@ var TurndownService = (function () {
         resetButton(button);
       });
 
-      button.onclick = () => {
+      button.onclick = (e) => {
+        e.stopPropagation();
         const value = getValue();
-        navigator.clipboard
-          .writeText(value)
-          .then(() => {
-            if (!value) throw new Error('Missing value');
-            highlightButton(button, '#ffff00');
-            setTimeout(() => resetButton(button), 200);
-            console.log('[CJT🍀]', value);
-          })
-          .catch((error) => {
-            highlightButton(button, '#ff00ff');
-            setTimeout(() => resetButton(button), 200);
-            console.warn('[CJT🍀]', error);
-          });
+        onClickCopyButton(button, value);
       };
 
       return button;
     };
 
-    const createExtendToggle = () => {
+    const onClickCopyButton = (button, value) => {
+      navigator.clipboard
+        .writeText(value)
+        .then(() => {
+          if (!value) throw new Error('Missing value');
+          highlightButton(button, '#ffff00');
+          setTimeout(() => resetButton(button), 200);
+          console.log('[CJT🍀]', value);
+          if (openSettings) closeSettingsPopup();
+        })
+        .catch((error) => {
+          highlightButton(button, '#ff00ff');
+          setTimeout(() => resetButton(button), 200);
+          console.warn('[CJT🍀]', error);
+        });
+    };
+
+    const createSettingsButton = () => {
+      const settings = document.createElement('div');
+      settings.id = 'settings-btn';
+      settings.innerText = '···';
+      settings.style.display = 'flex';
+      settings.style.alignItems = 'center';
+      settings.style.justifyContent = 'center';
+      settings.style.marginLeft = '5px';
+      settings.style.padding = '0 5px';
+      settings.style.fontSize = '12px';
+      settings.style.fontWeight = 'bold';
+      settings.style.cursor = 'pointer';
+      settings.onclick = () => onClickSettingsButton();
+
+      return settings;
+    };
+
+    const onClickSettingsButton = () => {
+      if (openSettings) {
+        closeSettingsPopup();
+        return;
+      }
+      const popup = createSettingsPopup();
+      if (settingsClickListener) {
+        document.removeEventListener('click', settingsClickListener);
+      }
+      settingsClickListener = (e) => {
+        const clickOutside =
+          !popup.contains(e.target) &&
+          !document.getElementById('settings-btn').contains(e.target);
+        if (clickOutside) closeSettingsPopup();
+      };
+      document.addEventListener('click', settingsClickListener);
+      document.body.appendChild(popup);
+      openSettings = popup;
+    };
+
+    const createSettingsPopup = () => {
+      const popup = document.createElement('div');
+      popup.id = 'settings-popup';
+      popup.style.position = 'fixed';
+      popup.style.top = '50px';
+      popup.style.left = '50%';
+      popup.style.transform = 'translateX(-50%)';
+      popup.style.zIndex = 9999;
+      popup.style.display = 'flex';
+      popup.style.flexDirection = 'column';
+      popup.style.padding = '5px';
+      popup.style.paddingRight = '0';
+      popup.style.gap = '5px';
+      popup.style.backgroundColor = BACKGROUND_COLOR;
+      popup.style.border = `1px solid ${TEXT_COLOR}`;
+      popup.style.borderRadius = '5px';
+      popup.style.whiteSpace = 'nowrap';
+      popup.style.overflowX = 'hidden';
+      popup.style.textOverflow = 'clip';
+
+      buttons.forEach((props) => {
+        const row = createSettingsRow(props);
+        popup.appendChild(row);
+      });
+
+      return popup;
+    };
+
+    const createSettingsRow = (props) => {
+      const row = document.createElement('div');
+      row.id = `row-${props.id}`;
+      row.style.display = 'flex';
+      row.style.alignItems = 'center';
+      row.style.height = '25px';
+
+      const button = createCopyButton(props);
+      button.style.justifyContent = 'flex-start';
+      button.style.width = '100%';
+      button.style.padding = '0 5px';
+
+      row.appendChild(createToggle(props.id));
+      row.appendChild(button);
+
+      return row;
+    };
+
+    const createToggle = (buttonId) => {
       const toggle = document.createElement('div');
-      toggle.id = 'extend-toggle';
+      toggle.id = `toggle-${buttonId}`;
       toggle.style.display = 'flex';
       toggle.style.alignItems = 'center';
-      toggle.style.marginLeft = '25px';
-      toggle.style.gap = '5px';
+      toggle.style.justifyContent = 'center';
+      toggle.style.padding = '5px';
       toggle.style.cursor = 'pointer';
 
+      const circle = createToggleCircle();
+      const light = createToggleLight();
+      const reflect = createToggleReflect();
+
+      const updateToggleState = () => {
+        const isVisible = visibleButtons.includes(buttonId);
+        light.style.backgroundColor = isVisible ? 'lime' : 'green';
+        reflect.style.backgroundColor = isVisible ? '#fff' : '#FFFFFF50';
+      };
+
+      updateToggleState();
+      light.appendChild(reflect);
+      circle.appendChild(light);
+      toggle.appendChild(circle);
+
+      toggle.onclick = () => {
+        onClickToggle(buttonId);
+        updateToggleState();
+      };
+
+      return toggle;
+    };
+
+    const createToggleCircle = () => {
       const circle = document.createElement('div');
       circle.style.display = 'flex';
       circle.style.alignItems = 'center';
@@ -1184,49 +1309,53 @@ var TurndownService = (function () {
       circle.style.border = `1px solid ${TEXT_COLOR}`;
       circle.style.borderRadius = '50%';
 
+      return circle;
+    };
+
+    const createToggleLight = () => {
       const light = document.createElement('div');
       light.style.width = '100%';
       light.style.height = '100%';
-      light.style.backgroundColor = LIGHT_COLOR[extended];
       light.style.borderRadius = '50%';
       light.style.position = 'relative';
 
+      return light;
+    };
+
+    const createToggleReflect = () => {
       const reflect = document.createElement('div');
       reflect.style.position = 'absolute';
       reflect.style.top = '1px';
       reflect.style.right = '1px';
       reflect.style.width = '3px';
       reflect.style.height = '3px';
-      reflect.style.backgroundColor = REFLECT_COLOR[extended];
       reflect.style.borderRadius = '50%';
 
-      const text = document.createElement('div');
-      text.innerText = 'extend';
-      text.style.fontSize = '9px';
-      text.style.fontWeight = 'bold';
-      text.style.color = TEXT_COLOR;
-      text.style.cursor = 'pointer';
+      return reflect;
+    };
 
-      light.appendChild(reflect);
-      circle.appendChild(light);
-      toggle.appendChild(circle);
-      toggle.appendChild(text);
+    const onClickToggle = (buttonId) => {
+      const isVisible = visibleButtons.includes(buttonId);
+      if (isVisible) {
+        visibleButtons = visibleButtons.filter((id) => id !== buttonId);
+      } else {
+        visibleButtons.push(buttonId);
+      }
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(visibleButtons));
+      const buttonEl = document.getElementById(buttonId);
+      if (!buttonEl) return;
+      buttonEl.style.display = !isVisible ? 'block' : 'none';
+    };
 
-      toggle.onclick = () => {
-        const isExtended = extended === 'on';
-        extended = isExtended ? 'off' : 'on';
-        localStorage.setItem('CJT_extended', !isExtended);
-        light.style.backgroundColor = LIGHT_COLOR[extended];
-        reflect.style.backgroundColor = REFLECT_COLOR[extended];
-
-        extensionButtons.forEach((id) => {
-          const button = document.getElementById(id);
-          if (!button) return;
-          button.style.display = !isExtended ? 'block' : 'none';
-        });
-      };
-
-      return toggle;
+    const closeSettingsPopup = () => {
+      if (openSettings) {
+        openSettings.remove();
+        openSettings = null;
+      }
+      if (settingsClickListener) {
+        document.removeEventListener('click', settingsClickListener);
+        settingsClickListener = null;
+      }
     };
 
     const container = document.createElement('div');
@@ -1237,11 +1366,16 @@ var TurndownService = (function () {
     container.style.transform = 'translateX(-50%)';
     container.style.zIndex = 9999;
     container.style.display = 'flex';
+    container.style.alignItems = 'center';
     container.style.gap = '10px';
     container.style.padding = '0 15px';
+    container.style.height = '25px';
     container.style.backgroundColor = BACKGROUND_COLOR;
     container.style.border = `1px solid ${TEXT_COLOR}`;
     container.style.borderRadius = '5px';
+    container.style.whiteSpace = 'nowrap';
+    container.style.overflowX = 'hidden';
+    container.style.textOverflow = 'clip';
 
     const buttons = [
       { name: 'KEY', id: 'key-btn', getValue: getIssueKey },
@@ -1279,14 +1413,13 @@ var TurndownService = (function () {
     ];
 
     buttons.forEach((props) => {
-      const button = createButton(props);
-      if (extensionButtons.includes(props.id)) {
-        button.style.display = extended === 'on' ? 'block' : 'none';
-      }
+      const button = createCopyButton(props);
+      const isVisible = visibleButtons.includes(props.id);
+      button.style.display = isVisible ? 'block' : 'none';
       container.appendChild(button);
     });
 
-    container.appendChild(createExtendToggle());
+    container.appendChild(createSettingsButton());
     document.body.appendChild(container);
   };
 
