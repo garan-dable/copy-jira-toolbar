@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         Copy Jira Toolbar
 // @namespace    http://tampermonkey.net/
-// @version      25061902
+// @version      25062302
 // @description  Jira 내용을 복사합니다.
 // @author       garan-dable
 // @match        https://teamdable.atlassian.net/browse/*
 // @updateURL    https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/load-pr-template.user.js
 // @downloadURL  https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/load-pr-template.user.js
-// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/turndownService.js?v=25061902
-// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/main.js?v=25061902
+// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/turndownService.js?v=25062302
+// @require      https://gist.githubusercontent.com/garan-dable/df07e66bee645209cd35fdbcb529e59c/raw/main.js?v=25062302
 // @grant        none
 // ==/UserScript==
 
@@ -1130,7 +1130,7 @@ var TurndownService = (function () {
 
     const toolbarStyle = {
       position: 'fixed',
-      top: '15px',
+      top: '53px',
       left: '50%',
       transform: 'translateX(-50%)',
       zIndex: 9999,
@@ -1175,7 +1175,7 @@ var TurndownService = (function () {
 
     const settingsPopupStyle = {
       position: 'fixed',
-      top: '50px',
+      top: '87px',
       left: '50%',
       transform: 'translateX(-50%)',
       zIndex: 9999,
