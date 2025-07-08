@@ -29,7 +29,7 @@
   };
 
   const getUrl = () => {
-    return location.href;
+    return location.href.split('?')[0];
   };
 
   const run = async () => {
