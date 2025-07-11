@@ -1,13 +1,13 @@
 // ==UserScript==
 // @name         Copy Jira Toolbar
 // @namespace    http://tampermonkey.net/
-// @version      25070801
+// @version      25071104
 // @description  Jira 내용을 복사합니다.
 // @author       garan-dable
 // @match        https://teamdable.atlassian.net/browse/*
-// @updateURL    https://cdn.jsdelivr.net/gh/garan-dable/copy-jira-toolbar@25070801/copy-jira-toolbar.user.js
-// @downloadURL  https://cdn.jsdelivr.net/gh/garan-dable/copy-jira-toolbar@25070801/copy-jira-toolbar.user.js
-// @require      https://cdn.jsdelivr.net/gh/garan-dable/copy-jira-toolbar@25070801/main.js
-// @require      https://cdn.jsdelivr.net/gh/garan-dable/copy-jira-toolbar@25070801/turndown.js
+// @updateURL    https://raw.githubusercontent.com/garan-dable/copy-jira-toolbar/main/copy-jira-toolbar.user.js
+// @downloadURL  https://raw.githubusercontent.com/garan-dable/copy-jira-toolbar/main/copy-jira-toolbar.user.js
+// @require      https://raw.githubusercontent.com/garan-dable/copy-jira-toolbar/main/turndown.js
+// @require      https://raw.githubusercontent.com/garan-dable/copy-jira-toolbar/main/main.js
 // @grant        none
 // ==/UserScript==
